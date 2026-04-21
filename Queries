@@ -1,0 +1,148 @@
+### CHAPTER - 1 ###
+##Task 1: Total number of orders
+
+Select count(order_id) AS total_orders
+from pizza_sales.orders;
+
+## Task 2: Total revenue generated
+
+Select ROUND(SUM(od.quantity * p.price),2) As total_revenue
+From order_details od
+JOIN pizzas p 
+	ON od.pizza_id = p.pizza_id;
+    
+## Task 3: Identify the highest-priced pizza
+
+Select p.price, pt.name
+From pizzas p 
+Join pizza_types pt
+		ON p.pizza_type_id = pt.pizza_type_id
+Where p.price = (
+		Select MAX(price)
+        From pizzas)
+;   
+
+##Task 4: Identify the most common pizza size ordered
+
+Select p.size, SUM(od.quantity) AS total_orders
+From pizzas p
+Join order_details od
+	ON p.pizza_id = od.pizza_id
+Group By p.size
+Order By total_orders desc
+Limit 1
+;    
+
+### CHAPTER - 2 ###
+## Task 1: List the top 5 most ordered pizza types along with their quantities
+
+select pt.name, SUM(od.quantity) AS total_quantity
+From order_details od
+Join pizzas p
+	ON od.pizza_id = p.pizza_id
+Join pizza_types pt
+		ON p.pizza_type_id = pt.pizza_type_id
+Group by pt.name 
+Order by total_quantity desc
+limit 5
+;         
+    
+## Task 2: Determine the distribution of orders by hour of the day
+
+Select hour(time) AS order_hour, count(order_id) AS total_orders
+From Orders
+Group By order_hour
+order By order_hour 
+;
+
+## Task 3: Determine the top 3 most ordered pizza types based on revenue
+
+Select pt.name, SUM(od.quantity * p.price) AS Revenue 
+From pizza_types pt
+Join pizzas p 
+	ON pt.pizza_type_id = p.pizza_type_id
+Join order_details od 
+		ON p.pizza_id = od.pizza_id
+Group By pt.name 
+Order By revenue desc
+Limit 3
+; 
+
+### CHAPTER - 3 ###
+## Task 1: Calculate the percentage contribution of each pizza type to total revenue    
+
+Select pt.name, Round(SUM(od.quantity * p.price)*100 /
+(Select SUM(od.quantity * p.price)
+from order_details od 
+Join pizzas p
+	ON od.pizza_id = p.pizza_id
+),2) AS Revenue_percentage
+From pizza_types pt
+Join pizzas p 
+		ON pt.pizza_type_id = p.pizza_type_id
+Join order_details od
+			ON p.pizza_id = od.pizza_id
+Group by pt.name
+Order By Revenue_percentage
+;            
+                
+## Task 2: Analyze the cumulative revenue generated over time
+
+ Select o.date, SUM(SUM(od.quantity * p.price))
+ Over(Order By o.date) AS cumulative_revenue
+ From Orders o
+ Join order_details od
+	ON o.order_id = od.order_id
+ Join pizzas p 
+	ON od.pizza_id = p.pizza_id
+ Group By o.date
+ ;
+ 
+ ## Task 3: Determine the top 3 most ordered pizza types based on revenue for each pizza category
+ 
+ Select *
+ From (
+ Select pt.category, pt.name, Round(SUM(od.quantity * p.price),2) AS category_revenue ,
+ RANK() OVER (PARTITION BY pt.category ORDER BY SUM(od.quantity * p.price) DESC) AS ranking
+ From pizzas p
+ Join pizza_types pt
+	ON p.pizza_type_id = pt.pizza_type_id
+ Join order_details od
+	ON p.pizza_id = od.pizza_id
+ Group By pt.name, pt.category
+ ) ranked_pizzas
+ Where ranking <= 3
+ ;
+ 
+ ### CHAPTER - 4 ###
+ ## Task 1: Join the necessary tables to find the total quantity of each pizza category ordered
+ 
+ Select pt.category, SUM(od.quantity) AS total_quantity
+ From pizza_types pt
+ Join pizzas p
+	ON pt.pizza_type_id = p.pizza_type_id
+ Join order_details od
+	ON p.pizza_id = od.pizza_id 
+ Group By pt.category
+ Order By total_quantity desc
+ ;
+ 
+ ## Task 2: Join relevant tables to find the category-wise distribution of pizzas
+ 
+ Select category, COUNT(name) as total_pizza_type
+ From pizza_types
+ Group By category 
+ Order By total_pizza_type desc
+ ;
+ 
+ ## Task 3: Group the orders by the date and calculate the average number of pizzas ordered per day
+ 
+ Select ROUND(AVG(daily_total),1)	AS average_pizza_per_day
+ From (
+ Select o.date, SUM(od.quantity) AS daily_total
+ From Orders o 
+ Join order_details od
+	ON o.order_id = od.order_id
+ Group By o.date
+ ) Daily_Order
+ ;
